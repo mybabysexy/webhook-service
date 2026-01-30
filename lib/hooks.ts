@@ -52,7 +52,7 @@ export function useUpdateWebhook() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async ({ id, data }: { id: string; data: any }) => {
-            const res = await fetch(`/api/api/webhooks/${id}`, {
+            const res = await fetch(`/api/webhooks/${id}`, {
                 method: "PATCH",
                 body: JSON.stringify(data),
             });

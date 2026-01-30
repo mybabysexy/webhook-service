@@ -6,6 +6,7 @@ import { HistoryItem } from "@/components/history-item";
 import { Trash2, Loader2, RefreshCw, Copy } from "lucide-react";
 
 import { RetroAlert } from "@/components/retro-alert";
+import { RetroSwitch } from "@/components/retro-switch";
 
 interface MainContentProps {
     webhook: any | null;
@@ -68,18 +69,12 @@ export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose }: Mai
                 <div className="flex items-center gap-2">
                     <span className="font-bold">{details?.method || webhook.method}</span>
                     <div className="h-4 w-[1px] bg-black mx-1"></div>
-                    <div className="field-row">
-                        <input
-                            id="status-mode"
-                            type="checkbox"
-                            name="status-mode"
-                            checked={details?.enabled ?? webhook.enabled}
-                            onChange={(e) => toggleStatus()}
-                        />
-                        <label htmlFor="status-mode" className="cursor-pointer">
-                            {(details?.enabled ?? webhook.enabled) ? "Enabled" : "Disabled"}
-                        </label>
-                    </div>
+                    <RetroSwitch
+                        id="status-mode"
+                        label={(details?.enabled ?? webhook.enabled) ? "Enabled" : "Disabled"}
+                        checked={details?.enabled ?? webhook.enabled}
+                        onChange={() => toggleStatus()}
+                    />
                 </div>
                 <div className="flex items-center gap-2">
                     <button onClick={handleDeleteClick} className="btn !min-w-0 !px-2 !min-h-0 !py-0 flex items-center gap-1 text-sm">
@@ -89,7 +84,7 @@ export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose }: Mai
             </div>
 
             {/* Window Pane / Content */}
-            <div className="window-pane !p-4 flex flex-col gap-4">
+            <div className="window-pane !p-4 flex flex-col gap-4 !overflow-y-auto">
                 {/* URL Section */}
                 <div className="flex flex-col gap-1">
                     <label className="font-bold text-sm">Webhook URL:</label>
@@ -122,21 +117,19 @@ export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose }: Mai
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-auto border-[.1rem] border-[var(--primary)] p-2 bg-white">
-                        {loading && !details ? (
-                            <div className="flex justify-center p-10"><Loader2 className="animate-spin" /></div>
-                        ) : (details?.requests?.length === 0 ? (
-                            <div className="p-4 text-center text-gray-500">
-                                No requests yet.
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                {details?.requests?.map((req: any) => (
-                                    <HistoryItem key={req.id} request={req} />
-                                ))}
-                            </div>
-                        ))}
-                    </div>
+                    {loading && !details ? (
+                        <div className="flex justify-center p-10"><Loader2 className="animate-spin" /></div>
+                    ) : (details?.requests?.length === 0 ? (
+                        <div className="p-4 text-center text-gray-500">
+                            No requests yet.
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {details?.requests?.map((req: any) => (
+                                <HistoryItem key={req.id} request={req} />
+                            ))}
+                        </div>
+                    ))}
                 </div>
             </div>
 
