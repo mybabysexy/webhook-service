@@ -1,44 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { MainContent } from "@/components/main-content";
 import { Webhook } from "@prisma/client";
-
-interface WebhookWithRequests extends Webhook {
-    requests?: any[];
-}
+import { useWebhooks } from "@/lib/hooks";
 
 export function WebhookDashboard() {
-    const [webhooks, setWebhooks] = useState<WebhookWithRequests[]>([]);
+    const { data: webhooks = [], isLoading, refetch } = useWebhooks();
     const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
 
-    const fetchWebhooks = async () => {
-        try {
-            const res = await fetch("/api/webhooks");
-            if (res.ok) {
-                const data = await res.json();
-                setWebhooks(data);
-            }
-        } catch (error) {
-            console.error("Failed to fetch webhooks", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchWebhooks();
-    }, []);
-
-    const handleCreateSuccess = (newWebhook: WebhookWithRequests) => {
-        setWebhooks([newWebhook, ...webhooks]);
+    const handleCreateSuccess = (newWebhook: any) => {
         setSelectedWebhookId(newWebhook.id);
     };
 
     const handleDeleteSuccess = (id: string) => {
-        setWebhooks(webhooks.filter((w) => w.id !== id));
         if (selectedWebhookId === id) {
             setSelectedWebhookId(null);
         }
@@ -62,7 +38,7 @@ export function WebhookDashboard() {
                     webhook={selectedWebhook}
                     onDeleteSuccess={handleDeleteSuccess}
                     onUpdate={() => {
-                        fetchWebhooks();
+                        refetch();
                     }}
                     onClose={() => {
                         setSelectedWebhookId(null);

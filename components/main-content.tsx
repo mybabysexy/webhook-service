@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { HistoryItem } from "@/components/history-item";
 import { Trash2, Loader2, RefreshCw, Copy } from "lucide-react";
@@ -14,39 +14,27 @@ interface MainContentProps {
     onClose: () => void;
 }
 
-export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose }: MainContentProps) {
-    const [details, setDetails] = useState<any>(null);
-    const [loading, setLoading] = useState(false);
-    const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+import { useWebhookDetails, useUpdateWebhook, useDeleteWebhook } from "@/lib/hooks";
 
-    useEffect(() => {
-        if (webhook) {
-            setLoading(true);
-            fetch(`/api/webhooks/${webhook.id}`)
-                .then((res) => res.json())
-                .then((data) => {
-                    setDetails(data);
-                })
-                .finally(() => setLoading(false));
-        } else {
-            setDetails(null);
-        }
-    }, [webhook?.id]);
+export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose }: MainContentProps) {
+    const { data: details, isLoading: loading, refetch } = useWebhookDetails(webhook?.id || null);
+    const updateMutation = useUpdateWebhook();
+    const deleteMutation = useDeleteWebhook();
+    const [showDeleteAlert, setShowDeleteAlert] = useState(false);
 
     const toggleStatus = async () => {
         if (!details) return;
         const newStatus = !details.enabled;
-        await fetch(`/api/webhooks/${details.id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ enabled: newStatus })
+        await updateMutation.mutateAsync({
+            id: details.id,
+            data: { enabled: newStatus }
         });
-        setDetails({ ...details, enabled: newStatus });
         onUpdate(); // update sidebar list
     };
 
     const confirmDelete = async () => {
         if (!details) return;
-        await fetch(`/api/webhooks/${details.id}`, { method: 'DELETE' });
+        await deleteMutation.mutateAsync(details.id);
         onDeleteSuccess(details.id);
     };
 
@@ -129,13 +117,7 @@ export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose }: Mai
                 <div className="flex-1 flex flex-col min-h-0">
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="font-bold text-lg">Request History</h3>
-                        <button className="btn !min-w-0 !px-2" onClick={() => {
-                            setLoading(true);
-                            fetch(`/api/webhooks/${webhook.id}`)
-                                .then((res) => res.json())
-                                .then((data) => setDetails(data))
-                                .finally(() => setLoading(false));
-                        }}>
+                        <button className="btn !min-w-0 !px-2" onClick={() => refetch()}>
                             {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <RefreshCw className="w-4 h-4" />}
                         </button>
                     </div>

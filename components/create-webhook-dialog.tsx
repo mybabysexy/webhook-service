@@ -34,8 +34,11 @@ interface CreateWebhookDialogProps {
     onSuccess: (webhook: any) => void;
 }
 
+import { useCreateWebhook } from "@/lib/hooks";
+
 export function CreateWebhookDialog({ onSuccess }: CreateWebhookDialogProps) {
     const [open, setOpen] = useState(false);
+    const createMutation = useCreateWebhook();
     const form = useForm<z.infer<typeof formSchema>>({
         // @ts-ignore
         resolver: zodResolver(formSchema),
@@ -56,22 +59,12 @@ export function CreateWebhookDialog({ onSuccess }: CreateWebhookDialogProps) {
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         try {
-            const res = await fetch("/api/webhooks", {
-                method: "POST",
-                body: JSON.stringify(values),
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                onSuccess(data);
-                setOpen(false);
-                form.reset();
-            } else {
-                const err = await res.json();
-                form.setError("path", { message: err.error });
-            }
-        } catch (error) {
-            console.error(error);
+            const data = await createMutation.mutateAsync(values);
+            onSuccess(data);
+            setOpen(false);
+            form.reset();
+        } catch (error: any) {
+            form.setError("path", { message: error.message });
         }
     };
 

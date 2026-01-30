@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description: "Retro Webhook Service Manager",
 };
 
+import Providers from "@/lib/providers";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -17,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className="antialiased h-full overflow-hidden">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
