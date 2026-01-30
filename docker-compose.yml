@@ -14,10 +14,11 @@ services:
       - db_data:/var/lib/postgresql/data
 
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     restart: always
+    image: registry.duc1607.me/webhook
     ports:
       - "3000:3000"
     environment:
