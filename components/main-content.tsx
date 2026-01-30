@@ -1,0 +1,170 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+import { HistoryItem } from "@/components/history-item";
+import { Trash2, Loader2, RefreshCw, Copy } from "lucide-react";
+
+import { RetroAlert } from "@/components/retro-alert";
+
+interface MainContentProps {
+    webhook: any | null;
+    onDeleteSuccess: (id: string) => void;
+    onUpdate: () => void;
+    onClose: () => void;
+}
+
+export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose }: MainContentProps) {
+    const [details, setDetails] = useState<any>(null);
+    const [loading, setLoading] = useState(false);
+    const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+
+    useEffect(() => {
+        if (webhook) {
+            setLoading(true);
+            fetch(`/api/webhooks/${webhook.id}`)
+                .then((res) => res.json())
+                .then((data) => {
+                    setDetails(data);
+                })
+                .finally(() => setLoading(false));
+        } else {
+            setDetails(null);
+        }
+    }, [webhook?.id]);
+
+    const toggleStatus = async () => {
+        if (!details) return;
+        const newStatus = !details.enabled;
+        await fetch(`/api/webhooks/${details.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ enabled: newStatus })
+        });
+        setDetails({ ...details, enabled: newStatus });
+        onUpdate(); // update sidebar list
+    };
+
+    const confirmDelete = async () => {
+        if (!details) return;
+        await fetch(`/api/webhooks/${details.id}`, { method: 'DELETE' });
+        onDeleteSuccess(details.id);
+    };
+
+    const handleDeleteClick = () => {
+        if (!details) return;
+        setShowDeleteAlert(true);
+    };
+
+    if (!webhook) {
+        return (
+            <div className="flex-1 flex items-center justify-center border-[.1rem] border-[var(--primary)]">
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold mb-2">Welcome</h2>
+                    <h2 className="!text-sm text-gray-500">Select a webhook to view details or create a new one.</h2>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="window flex flex-col h-full !m-0 !w-full md:!w-auto grow border-l-0">
+            {/* Header / Title Bar */}
+            <div className="title-bar">
+                <button aria-label="Close" className="close" onClick={onClose}></button>
+                <h1 className="title line-clamp-1">{details?.name || webhook.name || details?.path || (webhook.path ? `/${webhook.path}` : "New Webhook")}</h1>
+                <button aria-label="Resize" className="resize hidden"></button>
+            </div>
+
+            {/* Details Bar / Metadata */}
+            <div className="details-bar flex items-center justify-between !h-auto !py-1">
+                <div className="flex items-center gap-2">
+                    <span className="font-bold">{details?.method || webhook.method}</span>
+                    <div className="h-4 w-[1px] bg-black mx-1"></div>
+                    <div className="field-row">
+                        <input
+                            id="status-mode"
+                            type="checkbox"
+                            name="status-mode"
+                            checked={details?.enabled ?? webhook.enabled}
+                            onChange={(e) => toggleStatus()}
+                        />
+                        <label htmlFor="status-mode" className="cursor-pointer">
+                            {(details?.enabled ?? webhook.enabled) ? "Enabled" : "Disabled"}
+                        </label>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button onClick={handleDeleteClick} className="btn !min-w-0 !px-2 !min-h-0 !py-0 flex items-center gap-1 text-sm">
+                        <Trash2 className="w-3 h-3" /> Delete
+                    </button>
+                </div>
+            </div>
+
+            {/* Window Pane / Content */}
+            <div className="window-pane !p-4 flex flex-col gap-4">
+                {/* URL Section */}
+                <div className="flex flex-col gap-1">
+                    <label className="font-bold text-sm">Webhook URL:</label>
+                    <div className="flex items-center gap-2">
+                        <input
+                            readOnly
+                            className="w-full text-sm font-mono"
+                            value={typeof window !== 'undefined' ? `${window.location.origin}/webhook/${details?.path || webhook.path}` : ''}
+                        />
+                        <button
+                            className="btn !min-w-0 !px-3"
+                            onClick={() => {
+                                const url = `${window.location.origin}/webhook/${details?.path || webhook.path}`;
+                                navigator.clipboard.writeText(url);
+                            }}
+                        >
+                            <Copy className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="separator"></div>
+
+                {/* History Section */}
+                <div className="flex-1 flex flex-col min-h-0">
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-bold text-lg">Request History</h3>
+                        <button className="btn !min-w-0 !px-2" onClick={() => {
+                            setLoading(true);
+                            fetch(`/api/webhooks/${webhook.id}`)
+                                .then((res) => res.json())
+                                .then((data) => setDetails(data))
+                                .finally(() => setLoading(false));
+                        }}>
+                            {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <RefreshCw className="w-4 h-4" />}
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-auto border-[.1rem] border-[var(--primary)] p-2 bg-white">
+                        {loading && !details ? (
+                            <div className="flex justify-center p-10"><Loader2 className="animate-spin" /></div>
+                        ) : (details?.requests?.length === 0 ? (
+                            <div className="p-4 text-center text-gray-500">
+                                No requests yet.
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {details?.requests?.map((req: any) => (
+                                    <HistoryItem key={req.id} request={req} />
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            <RetroAlert
+                open={showDeleteAlert}
+                onOpenChange={setShowDeleteAlert}
+                title="Delete Webhook"
+                message="Are you sure you want to delete this webhook?"
+                onConfirm={confirmDelete}
+            />
+        </div>
+    );
+}
