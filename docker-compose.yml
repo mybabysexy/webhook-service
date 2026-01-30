@@ -24,12 +24,6 @@ services:
       DATABASE_URL: postgres://postgres:password@db:5432/webhook_service
     depends_on:
       - db
-    healthcheck:
-      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000" ]
-      interval: 1m30s
-      timeout: 30s
-      retries: 5
-      start_period: 30s
 
 volumes:
   db_data:
