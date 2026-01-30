@@ -21,13 +21,22 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Plus } from "lucide-react";
+import CodeMirror from '@uiw/react-codemirror';
+import { json } from '@codemirror/lang-json';
 
 const formSchema = z.object({
     name: z.string().optional(),
     path: z.string().min(1, "Path cannot be empty").regex(/^[a-zA-Z0-9-_/]+$/, "Invalid characters in path"),
     method: z.string(),
     responseStatus: z.coerce.number().min(80).max(999),
-    responseData: z.string(),
+    responseData: z.string().refine((val) => {
+        try {
+            JSON.parse(val);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }, "Invalid JSON format"),
 });
 
 interface CreateWebhookDialogProps {
@@ -42,12 +51,14 @@ export function CreateWebhookDialog({ onSuccess }: CreateWebhookDialogProps) {
     const form = useForm<z.infer<typeof formSchema>>({
         // @ts-ignore
         resolver: zodResolver(formSchema),
+        mode: "onSubmit",
+        reValidateMode: "onSubmit",
         defaultValues: {
             name: "",
             path: "",
             method: "POST",
             responseStatus: 200,
-            responseData: "{}",
+            responseData: `{"success": true}`
         },
     });
 
@@ -187,10 +198,19 @@ export function CreateWebhookDialog({ onSuccess }: CreateWebhookDialogProps) {
                                         <FormItem>
                                             <FormLabel>Response JSON</FormLabel>
                                             <FormControl>
-                                                <textarea
-                                                    {...field}
-                                                    className="min-h-[100px] font-mono text-xs w-full"
-                                                />
+                                                <div className="border border-black overflow-hidden bg-white">
+                                                    <CodeMirror
+                                                        value={field.value}
+                                                        height="150px"
+                                                        extensions={[json()]}
+                                                        onChange={(value: string) => {
+                                                            field.onChange(value)
+                                                            form.clearErrors(field.name)
+                                                        }}
+                                                        theme="light"
+                                                        className="text-xs font-mono"
+                                                    />
+                                                </div>
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
