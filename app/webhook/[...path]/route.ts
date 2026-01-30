@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/prisma";
 
 async function handleWebhook(request: Request, { params }: { params: Promise<{ path: string[] }> }) {
     const { path: pathSegments } = await params;
