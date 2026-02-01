@@ -37,6 +37,9 @@ const formSchema = z.object({
             return false;
         }
     }, "Invalid JSON format"),
+    authEnabled: z.boolean().default(false),
+    authType: z.enum(["bearer", "query"]).optional(),
+    authToken: z.string().optional(),
 });
 
 interface CreateWebhookDialogProps {
@@ -58,7 +61,10 @@ export function CreateWebhookDialog({ onSuccess }: CreateWebhookDialogProps) {
             path: "",
             method: "POST",
             responseStatus: 200,
-            responseData: `{"success": true}`
+            responseData: `{"success": true}`,
+            authEnabled: false,
+            authType: "bearer",
+            authToken: ""
         },
     });
 
@@ -216,6 +222,71 @@ export function CreateWebhookDialog({ onSuccess }: CreateWebhookDialogProps) {
                                         </FormItem>
                                     )}
                                 />
+
+                                <div className="separator"></div>
+
+                                <FormField
+                                    control={form.control as any}
+                                    name="authEnabled"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <div className="flex items-center gap-2">
+                                                <FormControl>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={field.value}
+                                                        onChange={field.onChange}
+                                                    />
+                                                </FormControl>
+                                                <FormLabel className="!mb-0">Enable Authentication</FormLabel>
+                                            </div>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {form.watch("authEnabled") && (
+                                    <>
+                                        <FormField
+                                            control={form.control as any}
+                                            name="authType"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Auth Type</FormLabel>
+                                                    <FormControl>
+                                                        <select
+                                                            {...field}
+                                                            className="!w-full"
+                                                        >
+                                                            <option value="bearer">Bearer Token (Header)</option>
+                                                            <option value="query">Query Parameter</option>
+                                                        </select>
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control as any}
+                                            name="authToken"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Token</FormLabel>
+                                                    <FormControl>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Enter your authentication token"
+                                                            className="w-full font-mono"
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </>
+                                )}
+
                                 <div className="flex justify-end pt-2">
                                     <button type="submit" className="btn btn-default">
                                         Create

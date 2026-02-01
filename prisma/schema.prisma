@@ -15,6 +15,9 @@ model Webhook {
   responseStatus  Int              @default(200)
   responseData    Json             @default("{}")
   enabled         Boolean          @default(true)
+  authEnabled     Boolean          @default(false)
+  authType        String?          // "bearer" or "query"
+  authToken       String?          // The token to validate against
   createdAt       DateTime         @default(now())
   requests        WebhookRequest[]
 }

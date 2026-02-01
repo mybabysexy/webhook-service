@@ -106,6 +106,33 @@ export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose }: Mai
                     </div>
                 </div>
 
+                {/* Authentication Section */}
+                {(details?.authEnabled || webhook?.authEnabled) && (
+                    <div className="flex flex-col gap-2">
+                        <label className="font-bold text-sm">Authentication:</label>
+                        <div className="flex flex-col gap-1 text-sm">
+                            <div className="flex gap-2">
+                                <span className="font-semibold">Type:</span>
+                                <span>{(details?.authType || webhook?.authType) === 'bearer' ? 'Bearer Token (Header)' : 'Query Parameter (?token=...)'}</span>
+                            </div>
+                            <div className="flex gap-2">
+                                <span className="font-semibold">Token:</span>
+                                <code className="font-mono bg-gray-100 px-1">{details?.authToken || webhook?.authToken}</code>
+                            </div>
+                            {(details?.authType || webhook?.authType) === 'bearer' && (
+                                <div className="text-xs text-gray-600 mt-1">
+                                    Use header: <code className="font-mono bg-gray-100 px-1">Authorization: Bearer {details?.authToken || webhook?.authToken}</code>
+                                </div>
+                            )}
+                            {(details?.authType || webhook?.authType) === 'query' && (
+                                <div className="text-xs text-gray-600 mt-1">
+                                    Example: <code className="font-mono bg-gray-100 px-1">{typeof window !== 'undefined' ? `${window.location.origin}/webhook/${details?.path || webhook.path}?token=${details?.authToken || webhook?.authToken}` : ''}</code>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 <div className="separator"></div>
 
                 {/* History Section */}

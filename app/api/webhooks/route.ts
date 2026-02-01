@@ -18,7 +18,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { name, path, method, responseStatus, responseData } = body;
+        const { name, path, method, responseStatus, responseData, authEnabled, authType, authToken } = body;
 
         // Validate path uniqueness
         const existing = await prisma.webhook.findUnique({
@@ -39,6 +39,9 @@ export async function POST(request: Request) {
                 method,
                 responseStatus: parseInt(responseStatus),
                 responseData: typeof responseData === 'string' ? JSON.parse(responseData) : responseData,
+                authEnabled: authEnabled || false,
+                authType: authEnabled ? authType : null,
+                authToken: authEnabled ? authToken : null,
             },
         });
 

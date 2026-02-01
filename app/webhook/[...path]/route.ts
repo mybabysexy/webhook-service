@@ -23,13 +23,32 @@ async function handleWebhook(request: Request, { params }: { params: Promise<{ p
         }
 
         if (webhook.method !== method && webhook.method !== "ANY") {
-            // Note: user asked for REST method selection. If we support exact match, we check it.
-            // If the user wants ANY, we might handle it. For now assuming exact match.
-            // But let's check if we want to support method mismatch or not.
-            // The prompt said "Webhook creation must have rest method selection".
-            // So likely strict method matching.
-            if (webhook.method !== method) {
-                return NextResponse.json({ error: `Method ${method} not allowed` }, { status: 405 });
+            return NextResponse.json({ error: `Method ${method} not allowed` }, { status: 405 });
+        }
+
+        // Authentication check
+        if (webhook.authEnabled && webhook.authToken) {
+            let authenticated = false;
+
+            if (webhook.authType === "bearer") {
+                // Check Authorization header for Bearer token
+                const authHeader = request.headers.get("authorization");
+                if (authHeader && authHeader.startsWith("Bearer ")) {
+                    const token = authHeader.substring(7);
+                    authenticated = token === webhook.authToken;
+                }
+            } else if (webhook.authType === "query") {
+                // Check query parameter for token
+                const { searchParams } = new URL(request.url);
+                const token = searchParams.get("token");
+                authenticated = token === webhook.authToken;
+            }
+
+            if (!authenticated) {
+                return NextResponse.json(
+                    { error: "Unauthorized" },
+                    { status: 401 }
+                );
             }
         }
 
