@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,6 +23,7 @@ import {
 import { Plus } from "lucide-react";
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
+import { Webhook } from "@prisma/client";
 
 const formSchema = z.object({
     name: z.string().optional(),
@@ -46,9 +47,13 @@ interface CreateWebhookDialogProps {
     onSuccess: (webhook: any) => void;
 }
 
+export interface CreateWebhookDialogHandle {
+    openWithData: (webhook: Webhook) => void;
+}
+
 import { useCreateWebhook } from "@/lib/hooks";
 
-export function CreateWebhookDialog({ onSuccess }: CreateWebhookDialogProps) {
+export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateWebhookDialogProps>(({ onSuccess }, ref) => {
     const [open, setOpen] = useState(false);
     const createMutation = useCreateWebhook();
     const form = useForm<z.infer<typeof formSchema>>({
@@ -68,8 +73,28 @@ export function CreateWebhookDialog({ onSuccess }: CreateWebhookDialogProps) {
         },
     });
 
+    useImperativeHandle(ref, () => ({
+        openWithData: (webhook: Webhook) => {
+            form.reset({
+                name: webhook.name ? `${webhook.name} (Copy)` : "",
+                path: `${webhook.path}-copy`,
+                method: webhook.method,
+                responseStatus: webhook.responseStatus,
+                responseData: typeof webhook.responseData === 'string'
+                    ? webhook.responseData
+                    : JSON.stringify(webhook.responseData, null, 2),
+                authEnabled: webhook.authEnabled,
+                authType: (webhook.authType === "bearer" || webhook.authType === "query")
+                    ? webhook.authType
+                    : "bearer",
+                authToken: webhook.authToken || ""
+            });
+            setOpen(true);
+        }
+    }));
+
     useEffect(() => {
-        if (open) {
+        if (open && !form.getValues("path")) {
             form.setValue("path", crypto.randomUUID());
         }
     }, [open, form]);
@@ -287,7 +312,14 @@ export function CreateWebhookDialog({ onSuccess }: CreateWebhookDialogProps) {
                                     </>
                                 )}
 
-                                <div className="flex justify-end pt-2">
+                                <div className="flex justify-end gap-2 pt-2">
+                                    <button
+                                        type="button"
+                                        className="btn"
+                                        onClick={() => form.reset()}
+                                    >
+                                        Reset
+                                    </button>
                                     <button type="submit" className="btn btn-default">
                                         Create
                                     </button>
@@ -299,4 +331,6 @@ export function CreateWebhookDialog({ onSuccess }: CreateWebhookDialogProps) {
             </DialogContent>
         </Dialog>
     );
-}
+});
+
+CreateWebhookDialog.displayName = "CreateWebhookDialog";

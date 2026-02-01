@@ -30,6 +30,7 @@ export function WebhookDashboard() {
                     selectedId={selectedWebhookId}
                     onSelect={setSelectedWebhookId}
                     onCreateSuccess={handleCreateSuccess}
+                    onDeleteSuccess={handleDeleteSuccess}
                 />
             </div>
 
