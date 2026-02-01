@@ -1,9 +1,23 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Webhook } from "@prisma/client";
+import { Webhook, WebhookRequest } from "@prisma/client";
 
 export type WebhookWithRequests = Webhook & {
-    requests: any[];
+    requests: WebhookRequest[];
 };
+
+export type CreateWebhookInput = {
+    name?: string;
+    path: string;
+    method: string;
+    responseStatus: number;
+    responseData: string;
+    enabled?: boolean;
+    authEnabled: boolean;
+    authType?: "bearer" | "query";
+    authToken?: string;
+};
+
+export type UpdateWebhookInput = Partial<CreateWebhookInput>;
 
 export function useWebhooks() {
     return useQuery<Webhook[]>({
@@ -30,8 +44,8 @@ export function useWebhookDetails(id: string | null) {
 
 export function useCreateWebhook() {
     const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: async (newWebhook: any) => {
+    return useMutation<Webhook, Error, CreateWebhookInput>({
+        mutationFn: async (newWebhook: CreateWebhookInput) => {
             const res = await fetch("/api/webhooks", {
                 method: "POST",
                 body: JSON.stringify(newWebhook),
@@ -50,8 +64,8 @@ export function useCreateWebhook() {
 
 export function useUpdateWebhook() {
     const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    return useMutation<Webhook, Error, { id: string; data: UpdateWebhookInput }>({
+        mutationFn: async ({ id, data }: { id: string; data: UpdateWebhookInput }) => {
             const res = await fetch(`/api/webhooks/${id}`, {
                 method: "PATCH",
                 body: JSON.stringify(data),
@@ -68,7 +82,7 @@ export function useUpdateWebhook() {
 
 export function useDeleteWebhook() {
     const queryClient = useQueryClient();
-    return useMutation({
+    return useMutation<void, Error, string>({
         mutationFn: async (id: string) => {
             const res = await fetch(`/api/webhooks/${id}`, {
                 method: "DELETE",

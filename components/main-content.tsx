@@ -7,9 +7,10 @@ import { Trash2, Loader2, RefreshCw, Copy } from "lucide-react";
 
 import { RetroAlert } from "@/components/retro-alert";
 import { RetroSwitch } from "@/components/retro-switch";
+import { Webhook } from "@prisma/client";
 
 interface MainContentProps {
-    webhook: any | null;
+    webhook: Webhook | null;
     onDeleteSuccess: (id: string) => void;
     onUpdate: () => void;
     onClose: () => void;
@@ -152,7 +153,7 @@ export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose }: Mai
                         </div>
                     ) : (
                         <div className="space-y-2">
-                            {details?.requests?.map((req: any) => (
+                            {details?.requests?.map((req) => (
                                 <HistoryItem key={req.id} request={req} />
                             ))}
                         </div>

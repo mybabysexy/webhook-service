@@ -1,5 +1,12 @@
 // using global fetch
 
+interface Webhook {
+    id: string;
+    path: string;
+    method: string;
+    responseStatus: number;
+    [key: string]: unknown;
+}
 
 async function main() {
     const BASE_URL = 'http://localhost:3000';
@@ -22,14 +29,14 @@ async function main() {
         process.exit(1);
     }
 
-    const webhook = await createRes.json();
+    const webhook = await createRes.json() as Webhook;
     console.log('Webhook created:', webhook.id);
 
     // 2. List Webhooks
     console.log('Listing webhooks...');
     const listRes = await fetch(`${BASE_URL}/api/webhooks`);
-    const webhooks = await listRes.json();
-    const found = (webhooks as any[]).find(w => w.id === webhook.id);
+    const webhooks = await listRes.json() as Webhook[];
+    const found = webhooks.find(w => w.id === webhook.id);
     if (!found) {
         console.error('Webhook not found in list');
         process.exit(1);

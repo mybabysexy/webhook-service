@@ -29,22 +29,24 @@ const formSchema = z.object({
     name: z.string().optional(),
     path: z.string().min(1, "Path cannot be empty").regex(/^[a-zA-Z0-9-_/]+$/, "Invalid characters in path"),
     method: z.string(),
-    responseStatus: z.coerce.number().min(80).max(999),
+    responseStatus: z.number().min(80).max(999),
     responseData: z.string().refine((val) => {
         try {
             JSON.parse(val);
             return true;
-        } catch (e) {
+        } catch {
             return false;
         }
     }, "Invalid JSON format"),
-    authEnabled: z.boolean().default(false),
+    authEnabled: z.boolean(),
     authType: z.enum(["bearer", "query"]).optional(),
     authToken: z.string().optional(),
 });
 
+type WebhookFormValues = z.infer<typeof formSchema>;
+
 interface CreateWebhookDialogProps {
-    onSuccess: (webhook: any) => void;
+    onSuccess: (webhook: Webhook) => void;
 }
 
 export interface CreateWebhookDialogHandle {
@@ -56,8 +58,7 @@ import { useCreateWebhook } from "@/lib/hooks";
 export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateWebhookDialogProps>(({ onSuccess }, ref) => {
     const [open, setOpen] = useState(false);
     const createMutation = useCreateWebhook();
-    const form = useForm<z.infer<typeof formSchema>>({
-        // @ts-ignore
+    const form = useForm<WebhookFormValues>({
         resolver: zodResolver(formSchema),
         mode: "onSubmit",
         reValidateMode: "onSubmit",
@@ -99,14 +100,15 @@ export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateW
         }
     }, [open, form]);
 
-    const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const onSubmit = async (values: WebhookFormValues) => {
         try {
             const data = await createMutation.mutateAsync(values);
             onSuccess(data);
             setOpen(false);
             form.reset();
-        } catch (error: any) {
-            form.setError("path", { message: error.message });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "An error occurred";
+            form.setError("path", { message });
         }
     };
 
@@ -131,9 +133,9 @@ export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateW
                     </div>
                     <div className="window-pane !overflow-hidden">
                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-4">
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                                 <FormField
-                                    control={form.control as any}
+                                    control={form.control}
                                     name="name"
                                     render={({ field }) => (
                                         <FormItem>
@@ -151,7 +153,7 @@ export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateW
                                     )}
                                 />
                                 <FormField
-                                    control={form.control as any}
+                                    control={form.control}
                                     name="path"
                                     render={({ field }) => (
                                         <FormItem>
@@ -173,7 +175,7 @@ export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateW
                                 />
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormField
-                                        control={form.control as any}
+                                        control={form.control}
                                         name="method"
                                         render={({ field }) => (
                                             <FormItem>
@@ -196,7 +198,7 @@ export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateW
                                         )}
                                     />
                                     <FormField
-                                        control={form.control as any}
+                                        control={form.control}
                                         name="responseStatus"
                                         render={({ field }) => (
                                             <FormItem>
@@ -223,7 +225,7 @@ export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateW
                                     />
                                 </div>
                                 <FormField
-                                    control={form.control as any}
+                                    control={form.control}
                                     name="responseData"
                                     render={({ field }) => (
                                         <FormItem>
@@ -251,7 +253,7 @@ export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateW
                                 <div className="separator"></div>
 
                                 <FormField
-                                    control={form.control as any}
+                                    control={form.control}
                                     name="authEnabled"
                                     render={({ field }) => (
                                         <FormItem>
@@ -273,7 +275,7 @@ export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateW
                                 {form.watch("authEnabled") && (
                                     <>
                                         <FormField
-                                            control={form.control as any}
+                                            control={form.control}
                                             name="authType"
                                             render={({ field }) => (
                                                 <FormItem>
@@ -292,7 +294,7 @@ export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateW
                                             )}
                                         />
                                         <FormField
-                                            control={form.control as any}
+                                            control={form.control}
                                             name="authToken"
                                             render={({ field }) => (
                                                 <FormItem>

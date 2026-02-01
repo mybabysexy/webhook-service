@@ -10,7 +10,7 @@ export function WebhookDashboard() {
     const { data: webhooks = [], isLoading, refetch } = useWebhooks();
     const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
 
-    const handleCreateSuccess = (newWebhook: any) => {
+    const handleCreateSuccess = (newWebhook: Webhook) => {
         setSelectedWebhookId(newWebhook.id);
     };
 

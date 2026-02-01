@@ -8,13 +8,20 @@ import {
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { JsonView, darkStyles, defaultStyles } from 'react-json-view-lite';
+import { JsonView, defaultStyles } from 'react-json-view-lite';
 import 'react-json-view-lite/dist/index.css';
 import clsx from "clsx";
 import { RetroSwitch } from "@/components/retro-switch";
+import { WebhookRequest } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 interface HistoryItemProps {
-    request: any;
+    request: WebhookRequest;
+}
+
+// Type guard to check if JsonValue is an object
+function isJsonObject(value: Prisma.JsonValue): value is Prisma.JsonObject {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 export function HistoryItem({ request }: HistoryItemProps) {
@@ -64,7 +71,7 @@ export function HistoryItem({ request }: HistoryItemProps) {
                         {isRawHeaders ? (
                             JSON.stringify(request.headers, null, 4)
                         ) : (
-                            Object.entries(request.headers).map(([k, v]) => (
+                            isJsonObject(request.headers) && Object.entries(request.headers).map(([k, v]) => (
                                 <div key={k}><span className="font-bold">{k}:</span> {String(v)}</div>
                             ))
                         )}
@@ -73,7 +80,7 @@ export function HistoryItem({ request }: HistoryItemProps) {
                 <div>
                     <h4 className="font-bold mb-1 text-xs uppercase text-gray-500">Query Params</h4>
                     <div className="bg-gray-100 p-2 border border-gray-300 font-mono text-xs overflow-auto">
-                        {Object.keys(request.query).length > 0 ? (
+                        {isJsonObject(request.query) && Object.keys(request.query).length > 0 ? (
                             Object.entries(request.query).map(([k, v]) => (
                                 <div key={k}><span className="font-bold">{k}:</span> {String(v)}</div>
                             ))
@@ -91,7 +98,7 @@ export function HistoryItem({ request }: HistoryItemProps) {
                         />
                     </div>
                     <div className="border border-gray-300 overflow-auto max-h-96 bg-gray-50">
-                        {request.body && Object.keys(request.body).length > 0 ? (
+                        {request.body && isJsonObject(request.body) && Object.keys(request.body).length > 0 ? (
                             isRawBody ? (
                                 <pre className="p-2 font-mono text-xs whitespace-pre-wrap">
                                     {JSON.stringify(request.body, null, 4)}
