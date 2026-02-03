@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { HistoryItem } from "@/components/history-item";
-import { Trash2, Loader2, RefreshCw, Copy } from "lucide-react";
+import { Trash2, Loader2, RefreshCw, Copy, Zap } from "lucide-react";
 
 import { RetroAlert } from "@/components/retro-alert";
 import { RetroSwitch } from "@/components/retro-switch";
@@ -23,6 +23,32 @@ export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose }: Mai
     const updateMutation = useUpdateWebhook();
     const deleteMutation = useDeleteWebhook();
     const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+    const [isLive, setIsLive] = useState(false);
+    const [liveModePrevIds, setLiveModePrevIds] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (isLive) {
+            interval = setInterval(() => {
+                refetch();
+            }, 3000);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [isLive, refetch]);
+
+    const toggleLive = () => {
+        if (!isLive) {
+            setIsLive(true);
+            if (details?.requests) {
+                setLiveModePrevIds(new Set(details.requests.map(r => r.id)));
+            }
+        } else {
+            setIsLive(false);
+            setLiveModePrevIds(new Set());
+        }
+    };
 
     const toggleStatus = async () => {
         if (!details) return;
@@ -140,9 +166,19 @@ export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose }: Mai
                 <div className="flex-1 flex flex-col min-h-0">
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="font-bold text-lg">Request History</h3>
-                        <button className="btn !min-w-0 !px-2" onClick={() => refetch()}>
-                            {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <RefreshCw className="w-4 h-4" />}
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button 
+                                className={`btn !min-w-0 !px-2 flex items-center gap-1 ${isLive ? "!bg-red-50 !text-red-500 !border-red-500" : ""}`}
+                                onClick={toggleLive}
+                                title={isLive ? "Stop Live Mode" : "Start Live Mode"}
+                            >
+                                <Zap className={`w-3 h-3 ${isLive ? "fill-current animate-pulse" : ""}`} />
+                                <span className="text-xs font-bold">Live</span>
+                            </button>
+                            <button className="btn !min-w-0 !px-2" onClick={() => refetch()}>
+                                {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <RefreshCw className="w-4 h-4" />}
+                            </button>
+                        </div>
                     </div>
 
                     {loading && !details ? (
@@ -154,7 +190,11 @@ export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose }: Mai
                     ) : (
                         <div className="space-y-2">
                             {details?.requests?.map((req) => (
-                                <HistoryItem key={req.id} request={req} />
+                                <HistoryItem 
+                                    key={req.id} 
+                                    request={req} 
+                                    className={isLive && liveModePrevIds.has(req.id) ? "opacity-30 grayscale transition-all duration-300" : "transition-all duration-300"}
+                                />
                             ))}
                         </div>
                     ))}

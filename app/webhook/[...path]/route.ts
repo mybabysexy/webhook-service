@@ -26,32 +26,6 @@ async function handleWebhook(request: Request, { params }: { params: Promise<{ p
             return NextResponse.json({ error: `Method ${method} not allowed` }, { status: 405 });
         }
 
-        // Authentication check
-        if (webhook.authEnabled && webhook.authToken) {
-            let authenticated = false;
-
-            if (webhook.authType === "bearer") {
-                // Check Authorization header for Bearer token
-                const authHeader = request.headers.get("authorization");
-                if (authHeader && authHeader.startsWith("Bearer ")) {
-                    const token = authHeader.substring(7);
-                    authenticated = token === webhook.authToken;
-                }
-            } else if (webhook.authType === "query") {
-                // Check query parameter for token
-                const { searchParams } = new URL(request.url);
-                const token = searchParams.get("token");
-                authenticated = token === webhook.authToken;
-            }
-
-            if (!authenticated) {
-                return NextResponse.json(
-                    { error: "Unauthorized" },
-                    { status: 401 }
-                );
-            }
-        }
-
         // Capture request details
         const headers: Record<string, string> = {};
         request.headers.forEach((value, key) => {
@@ -62,14 +36,15 @@ async function handleWebhook(request: Request, { params }: { params: Promise<{ p
         const contentType = request.headers.get("content-type") || "";
         if (contentType.includes("application/json")) {
             try {
+                // We clone the request to ensure we can read the body even if we needed it elsewhere (though here we just read it once)
+                // Actually, request.json() consumes the body. 
+                // Since we need to read it before deciding to error content, this is fine.
                 body = await request.json();
             } catch (e) {
                 console.error("Failed to parse JSON body", e);
                 body = { error: "Invalid JSON" };
             }
         } else {
-            // handle text or form data if needed, or store as null/string
-            // For simplicity, maybe we read text if not json
             try {
                 const text = await request.text();
                 if (text) {
@@ -87,6 +62,31 @@ async function handleWebhook(request: Request, { params }: { params: Promise<{ p
             query[key] = value;
         });
 
+        // Authentication check
+        let authenticated = true;
+        
+        if (webhook.authEnabled && webhook.authToken) {
+            authenticated = false;
+            if (webhook.authType === "bearer") {
+                // Check Authorization header for Bearer token
+                const authHeader = request.headers.get("authorization");
+                if (authHeader && authHeader.startsWith("Bearer ")) {
+                    const token = authHeader.substring(7);
+                    authenticated = token === webhook.authToken;
+                }
+            } else if (webhook.authType === "query") {
+                // Check query parameter for token
+                const token = searchParams.get("token");
+                authenticated = token === webhook.authToken;
+            }
+        }
+
+        const responseStatus = authenticated ? webhook.responseStatus : 401;
+        const responseData = authenticated ? webhook.responseData : { error: "Unauthorized" };
+
+        // Add status to headers for internal tracking
+        headers['x-webhook-response-status'] = String(responseStatus);
+
         // Save request to DB
         await prisma.webhookRequest.create({
             data: {
@@ -98,10 +98,10 @@ async function handleWebhook(request: Request, { params }: { params: Promise<{ p
             },
         });
 
-        // Return configured response
-        return NextResponse.json(webhook.responseData, {
-            status: webhook.responseStatus,
+        return NextResponse.json(responseData, {
+            status: responseStatus,
         });
+
     } catch (error) {
         console.error("Webhook handler error", error);
         return NextResponse.json(

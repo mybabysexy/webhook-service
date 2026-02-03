@@ -17,6 +17,7 @@ import { Prisma } from "@prisma/client";
 
 interface HistoryItemProps {
     request: WebhookRequest;
+    className?: string; // Add className prop
 }
 
 // Type guard to check if JsonValue is an object
@@ -24,7 +25,7 @@ function isJsonObject(value: Prisma.JsonValue): value is Prisma.JsonObject {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-export function HistoryItem({ request }: HistoryItemProps) {
+export function HistoryItem({ request, className }: HistoryItemProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [isRawHeaders, setIsRawHeaders] = useState(false);
     const [isRawBody, setIsRawBody] = useState(false);
@@ -33,7 +34,7 @@ export function HistoryItem({ request }: HistoryItemProps) {
         <Collapsible
             open={isOpen}
             onOpenChange={setIsOpen}
-            className="border-[.1rem] border-[var(--primary)]"
+            className={clsx("border-[.1rem] border-[var(--primary)]", className)} // Merge className
         >
             <CollapsibleTrigger asChild>
                 <div className="flex items-center justify-between p-2 cursor-pointer hover:bg-gray-50">
@@ -49,6 +50,11 @@ export function HistoryItem({ request }: HistoryItemProps) {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        {isJsonObject(request.headers) && request.headers['x-webhook-response-status'] && (
+                            <span className="text-xs font-bold px-1 border border-black text-white bg-[var(--primary)]">
+                                {String(request.headers['x-webhook-response-status'])}
+                            </span>
+                        )}
                         <span className={clsx("text-xs font-bold px-1 border border-black",
                             "bg-[var(--primary)] text-white"
                         )}>{request.method}</span>

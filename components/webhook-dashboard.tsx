@@ -6,9 +6,20 @@ import { MainContent } from "@/components/main-content";
 import { Webhook } from "@prisma/client";
 import { useWebhooks } from "@/lib/hooks";
 
+import { Loader2 } from "lucide-react";
+
 export function WebhookDashboard() {
     const { data: webhooks = [], isLoading, refetch } = useWebhooks();
     const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
+
+    // Initial loading state
+    if (isLoading) {
+        return (
+            <div className="flex h-screen w-full items-center justify-center">
+                <Loader2 className="h-10 w-10 animate-spin text-[var(--primary)]" />
+            </div>
+        );
+    }
 
     const handleCreateSuccess = (newWebhook: Webhook) => {
         setSelectedWebhookId(newWebhook.id);
