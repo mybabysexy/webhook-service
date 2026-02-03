@@ -14,11 +14,13 @@ interface MainContentProps {
     onDeleteSuccess: (id: string) => void;
     onUpdate: () => void;
     onClose: () => void;
+    onEditClick: (webhook: Webhook) => void;
 }
 
 import { useWebhookDetails, useUpdateWebhook, useDeleteWebhook } from "@/lib/hooks";
+import { Edit } from "lucide-react";
 
-export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose }: MainContentProps) {
+export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose, onEditClick }: MainContentProps) {
     const { data: details, isLoading: loading, refetch } = useWebhookDetails(webhook?.id || null);
     const updateMutation = useUpdateWebhook();
     const deleteMutation = useDeleteWebhook();
@@ -31,7 +33,7 @@ export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose }: Mai
         if (isLive) {
             interval = setInterval(() => {
                 refetch();
-            }, 3000);
+            }, 1000);
         }
         return () => {
             if (interval) clearInterval(interval);
@@ -71,6 +73,16 @@ export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose }: Mai
         setShowDeleteAlert(true);
     };
 
+    const handleEditClick = () => {
+        if (details) {
+            // merge details with base webhook to ensure we have all fields if details are partial
+            // though details should be fuller than webhook
+           onEditClick(details);
+        } else if (webhook) {
+            onEditClick(webhook);
+        }
+    };
+
     if (!webhook) {
         return (
             <div className="flex-1 flex items-center justify-center border-[.1rem] border-[var(--primary)]">
@@ -104,6 +116,9 @@ export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose }: Mai
                     />
                 </div>
                 <div className="flex items-center gap-2">
+                    <button onClick={handleEditClick} className="btn !min-w-0 !px-2 !min-h-0 !py-0 flex items-center gap-1 text-sm">
+                        <Edit className="w-3 h-3" /> Edit
+                    </button>
                     <button onClick={handleDeleteClick} className="btn !min-w-0 !px-2 !min-h-0 !py-0 flex items-center gap-1 text-sm">
                         <Trash2 className="w-3 h-3" /> Delete
                     </button>

@@ -36,9 +36,25 @@ export async function PATCH(
     const { id } = await params;
     try {
         const body = await request.json();
+        const { name, path, method, responseStatus, responseData, authEnabled, authType, authToken } = body;
+        
+        const updateData: any = {
+            name,
+            path,
+            method,
+            responseStatus: responseStatus ? parseInt(responseStatus) : undefined,
+            authEnabled,
+            authType: authEnabled ? authType : null,
+            authToken: authEnabled ? authToken : null,
+        };
+
+        if (responseData !== undefined) {
+             updateData.responseData = typeof responseData === 'string' ? JSON.parse(responseData) : responseData;
+        }
+
         const webhook = await prisma.webhook.update({
             where: { id },
-            data: body,
+            data: updateData,
         });
         return NextResponse.json(webhook);
     } catch (error) {

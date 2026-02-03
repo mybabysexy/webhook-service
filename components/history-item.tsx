@@ -14,6 +14,7 @@ import clsx from "clsx";
 import { RetroSwitch } from "@/components/retro-switch";
 import { WebhookRequest } from "@prisma/client";
 import { Prisma } from "@prisma/client";
+import { format } from "date-fns";
 
 interface HistoryItemProps {
     request: WebhookRequest;
@@ -44,7 +45,7 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
                         </Button>
                         <div className="flex flex-col">
                             <span className="font-bold text-sm">
-                                {new Date(request.timestamp).toLocaleString()}
+                                {format(new Date(request.timestamp), "dd/MM/yyyy HH:mm:ss")}
                             </span>
                             <span className="text-xs text-gray-500">ID: {request.id.slice(0, 8)}...</span>
                         </div>

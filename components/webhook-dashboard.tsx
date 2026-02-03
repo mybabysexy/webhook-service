@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { MainContent } from "@/components/main-content";
 import { Webhook } from "@prisma/client";
 import { useWebhooks } from "@/lib/hooks";
 
 import { Loader2 } from "lucide-react";
+import { WebhookDialog, WebhookDialogHandle } from "@/components/webhook-dialog";
 
 export function WebhookDashboard() {
     const { data: webhooks = [], isLoading, refetch } = useWebhooks();
     const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
+    const dialogRef = useRef<WebhookDialogHandle>(null);
 
     // Initial loading state
     if (isLoading) {
@@ -21,8 +23,9 @@ export function WebhookDashboard() {
         );
     }
 
-    const handleCreateSuccess = (newWebhook: Webhook) => {
-        setSelectedWebhookId(newWebhook.id);
+    const handleSuccess = (webhook: Webhook) => {
+        setSelectedWebhookId(webhook.id);
+        refetch(); // Ensure list is updated
     };
 
     const handleDeleteSuccess = (id: string) => {
@@ -40,8 +43,11 @@ export function WebhookDashboard() {
                     webhooks={webhooks}
                     selectedId={selectedWebhookId}
                     onSelect={setSelectedWebhookId}
-                    onCreateSuccess={handleCreateSuccess}
+                    onCreateSuccess={handleSuccess}
                     onDeleteSuccess={handleDeleteSuccess}
+                    onCreateClick={() => dialogRef.current?.openForCreate()}
+                    onDuplicateClick={(w) => dialogRef.current?.openForDuplicate(w)}
+                    onEditClick={(w) => dialogRef.current?.openForUpdate(w)}
                 />
             </div>
 
@@ -55,8 +61,11 @@ export function WebhookDashboard() {
                     onClose={() => {
                         setSelectedWebhookId(null);
                     }}
+                    onEditClick={(w) => dialogRef.current?.openForUpdate(w)}
                 />
             </div>
+            
+            <WebhookDialog ref={dialogRef} onSuccess={handleSuccess} />
         </div>
     );
 }

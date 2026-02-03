@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { CreateWebhookDialog, CreateWebhookDialogHandle } from "@/components/create-webhook-dialog";
+import { useState } from "react";
 import { Webhook } from "@prisma/client";
 import clsx from "clsx";
-import { Copy, Trash2 } from "lucide-react";
+import { Copy, Trash2, Plus, Edit } from "lucide-react";
 import { useDeleteWebhook } from "@/lib/hooks";
 import { RetroAlert } from "@/components/retro-alert";
+import { Button } from "@/components/ui/button";
 import {
     ContextMenu,
     ContextMenuContent,
@@ -20,13 +20,15 @@ interface SidebarProps {
     onSelect: (id: string) => void;
     onCreateSuccess: (webhook: Webhook) => void;
     onDeleteSuccess: (id: string) => void;
+    onCreateClick: () => void;
+    onDuplicateClick: (webhook: Webhook) => void;
+    onEditClick: (webhook: Webhook) => void;
 }
 
-export function Sidebar({ webhooks, selectedId, onSelect, onCreateSuccess, onDeleteSuccess }: SidebarProps) {
+export function Sidebar({ webhooks, selectedId, onSelect, onCreateSuccess, onDeleteSuccess, onCreateClick, onDuplicateClick, onEditClick }: SidebarProps) {
     const [search, setSearch] = useState("");
     const [showDeleteAlert, setShowDeleteAlert] = useState(false);
     const [webhookToDelete, setWebhookToDelete] = useState<string | null>(null);
-    const createDialogRef = useRef<CreateWebhookDialogHandle>(null);
 
     const deleteMutation = useDeleteWebhook();
 
@@ -36,8 +38,8 @@ export function Sidebar({ webhooks, selectedId, onSelect, onCreateSuccess, onDel
 
     const handleDuplicate = (webhookId: string) => {
         const webhook = webhooks.find(w => w.id === webhookId);
-        if (webhook && createDialogRef.current) {
-            createDialogRef.current.openWithData(webhook);
+        if (webhook) {
+            onDuplicateClick(webhook);
         }
     };
 
@@ -77,7 +79,9 @@ export function Sidebar({ webhooks, selectedId, onSelect, onCreateSuccess, onDel
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-                    <CreateWebhookDialog ref={createDialogRef} onSuccess={onCreateSuccess} />
+                    <Button size="sm" className="btn" onClick={onCreateClick}>
+                        <Plus className="w-4 h-4 mr-1" /> New
+                    </Button>
                 </div>
 
                 <div className="separator !my-2"></div>
@@ -105,6 +109,10 @@ export function Sidebar({ webhooks, selectedId, onSelect, onCreateSuccess, onDel
                                     </div>
                                 </ContextMenuTrigger>
                                 <ContextMenuContent>
+                                    <ContextMenuItem onClick={() => onEditClick(webhook)}>
+                                        <Edit className="w-4 h-4 mr-2" />
+                                        <span>Edit</span>
+                                    </ContextMenuItem>
                                     <ContextMenuItem onClick={() => handleDuplicate(webhook.id)}>
                                         <Copy className="w-4 h-4 mr-2" />
                                         <span>Duplicate</span>

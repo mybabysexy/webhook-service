@@ -1,14 +1,10 @@
-"use client";
-
-import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import { useState, forwardRef, useImperativeHandle } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogContent,
-    DialogTrigger,
     DialogTitle,
 } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
@@ -20,16 +16,19 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
-import { Plus } from "lucide-react";
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { Webhook } from "@prisma/client";
+import { useCreateWebhook, useUpdateWebhook } from "@/lib/hooks";
 
 const formSchema = z.object({
     name: z.string().optional(),
     path: z.string().min(1, "Path cannot be empty").regex(/^[a-zA-Z0-9-_/]+$/, "Invalid characters in path"),
     method: z.string(),
-    responseStatus: z.number().min(80).max(999),
+    responseStatus: z.string().refine((val) => {
+        const num = parseInt(val);
+        return !isNaN(num) && num >= 100 && num <= 599;
+    }, "Must be a valid HTTP status code"),
     responseData: z.string().refine((val) => {
         try {
             JSON.parse(val);
@@ -45,19 +44,24 @@ const formSchema = z.object({
 
 type WebhookFormValues = z.infer<typeof formSchema>;
 
-interface CreateWebhookDialogProps {
+interface WebhookDialogProps {
     onSuccess: (webhook: Webhook) => void;
 }
 
-export interface CreateWebhookDialogHandle {
-    openWithData: (webhook: Webhook) => void;
+export interface WebhookDialogHandle {
+    openForCreate: () => void;
+    openForDuplicate: (webhook: Webhook) => void;
+    openForUpdate: (webhook: Webhook) => void;
 }
 
-import { useCreateWebhook } from "@/lib/hooks";
-
-export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateWebhookDialogProps>(({ onSuccess }, ref) => {
+export const WebhookDialog = forwardRef<WebhookDialogHandle, WebhookDialogProps>(({ onSuccess }, ref) => {
     const [open, setOpen] = useState(false);
+    const [mode, setMode] = useState<'create' | 'update'>('create');
+    const [webhookId, setWebhookId] = useState<string | null>(null);
+
     const createMutation = useCreateWebhook();
+    const updateMutation = useUpdateWebhook();
+
     const form = useForm<WebhookFormValues>({
         resolver: zodResolver(formSchema),
         mode: "onSubmit",
@@ -66,7 +70,7 @@ export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateW
             name: "",
             path: "",
             method: "POST",
-            responseStatus: 200,
+            responseStatus: "200",
             responseData: `{"success": true}`,
             authEnabled: false,
             authType: "bearer",
@@ -75,12 +79,48 @@ export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateW
     });
 
     useImperativeHandle(ref, () => ({
-        openWithData: (webhook: Webhook) => {
+        openForCreate: () => {
+            setMode('create');
+            setWebhookId(null);
+            form.reset({
+                name: "",
+                path: crypto.randomUUID(),
+                method: "POST",
+                responseStatus: "200",
+                responseData: `{"success": true}`,
+                authEnabled: false,
+                authType: "bearer",
+                authToken: ""
+            });
+            setOpen(true);
+        },
+        openForDuplicate: (webhook: Webhook) => {
+            setMode('create');
+            setWebhookId(null);
             form.reset({
                 name: webhook.name ? `${webhook.name} (Copy)` : "",
                 path: `${webhook.path}-copy`,
                 method: webhook.method,
-                responseStatus: webhook.responseStatus,
+                responseStatus: String(webhook.responseStatus),
+                responseData: typeof webhook.responseData === 'string'
+                    ? webhook.responseData
+                    : JSON.stringify(webhook.responseData, null, 2),
+                authEnabled: webhook.authEnabled,
+                authType: (webhook.authType === "bearer" || webhook.authType === "query")
+                    ? webhook.authType
+                    : "bearer",
+                authToken: webhook.authToken || ""
+            });
+            setOpen(true);
+        },
+        openForUpdate: (webhook: Webhook) => {
+            setMode('update');
+            setWebhookId(webhook.id);
+            form.reset({
+                name: webhook.name || "",
+                path: webhook.path,
+                method: webhook.method,
+                responseStatus: String(webhook.responseStatus),
                 responseData: typeof webhook.responseData === 'string'
                     ? webhook.responseData
                     : JSON.stringify(webhook.responseData, null, 2),
@@ -94,18 +134,27 @@ export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateW
         }
     }));
 
-    useEffect(() => {
-        if (open && !form.getValues("path")) {
-            form.setValue("path", crypto.randomUUID());
-        }
-    }, [open, form]);
-
     const onSubmit = async (values: WebhookFormValues) => {
         try {
-            const data = await createMutation.mutateAsync(values);
-            onSuccess(data);
-            setOpen(false);
-            form.reset();
+            const submissionData = {
+                ...values,
+                responseStatus: parseInt(values.responseStatus),
+                authType: values.authEnabled ? values.authType : undefined,
+                authToken: values.authEnabled ? values.authToken : undefined
+            };
+
+            let data;
+            if (mode === 'create') {
+                data = await createMutation.mutateAsync(submissionData);
+            } else if (mode === 'update' && webhookId) {
+                data = await updateMutation.mutateAsync({ id: webhookId, data: submissionData });
+            }
+            
+            if (data) {
+                onSuccess(data);
+                setOpen(false);
+                form.reset();
+            }
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : "An error occurred";
             form.setError("path", { message });
@@ -114,22 +163,17 @@ export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateW
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button size="sm" className="btn">
-                    <Plus className="w-4 h-4 mr-1" /> New
-                </Button>
-            </DialogTrigger>
             <DialogContent
                 aria-describedby={undefined}
                 className="p-0 border-0 bg-transparent shadow-none max-w-none w-auto sm:max-w-none [&>button]:hidden"
             >
                 <VisuallyHidden>
-                    <DialogTitle>Create Webhook</DialogTitle>
+                    <DialogTitle>{mode === 'create' ? "Create Webhook" : "Update Webhook"}</DialogTitle>
                 </VisuallyHidden>
                 <div className="window scale-down text-[1rem]" style={{ width: '35rem' }}>
                     <div className="title-bar">
                         <button aria-label="Close" className="close" onClick={() => setOpen(false)}></button>
-                        <h1 className="title">Create Webhook</h1>
+                        <h1 className="title">{mode === 'create' ? "Create Webhook" : "Update Webhook"}</h1>
                     </div>
                     <div className="window-pane !overflow-hidden">
                         <Form {...form}>
@@ -318,12 +362,12 @@ export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateW
                                     <button
                                         type="button"
                                         className="btn"
-                                        onClick={() => form.reset()}
+                                        onClick={() => setOpen(false)}
                                     >
-                                        Reset
+                                        Cancel
                                     </button>
                                     <button type="submit" className="btn btn-default">
-                                        Create
+                                        {mode === 'create' ? "Create" : "Update"}
                                     </button>
                                 </div>
                             </form>
@@ -335,4 +379,4 @@ export const CreateWebhookDialog = forwardRef<CreateWebhookDialogHandle, CreateW
     );
 });
 
-CreateWebhookDialog.displayName = "CreateWebhookDialog";
+WebhookDialog.displayName = "WebhookDialog";
