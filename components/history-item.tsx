@@ -7,7 +7,7 @@ import {
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, Loader2, Send } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Send, Copy, Check } from "lucide-react";
 import { JsonView, defaultStyles } from 'react-json-view-lite';
 import 'react-json-view-lite/dist/index.css';
 import clsx from "clsx";
@@ -46,6 +46,7 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
     const [responseDetails, setResponseDetails] = useState<any>(null);
     const [isRawResponse, setIsRawResponse] = useState(false);
     const [hasExtension, setHasExtension] = useState(false);
+    const [isCopied, setIsCopied] = useState(false);
 
     // Check for extension on mount via Ping
     useEffect(() => {
@@ -167,6 +168,41 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
         }
     };
 
+    const handleCopyCurl = () => {
+        let url = forwardIp.trim();
+        if (!url) {
+            url = "http://localhost:3000/YOUR_ENDPOINT";
+        } else if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            url = `http://${url}`;
+        }
+
+        let cmd = `curl -X ${request.method} "${url}"`;
+
+        // Add headers
+        if (isJsonObject(request.headers)) {
+            Object.entries(request.headers).forEach(([k, v]) => {
+                // Skip internal headers or known restricted ones if simpler, 
+                // but usually copying all is fine for dev tools.
+                // We might want to skip content-length as curl adds it.
+                if (k.toLowerCase() === 'content-length') return;
+                const safeValue = String(v).replace(/"/g, '\\"');
+                cmd += ` \\\n  -H "${k}: ${safeValue}"`;
+            });
+        }
+
+        // Add body
+        if (request.body && isJsonObject(request.body) && Object.keys(request.body).length > 0) {
+            // Escape single quotes for bash
+            const bodyStr = JSON.stringify(request.body).replace(/'/g, "'\\''");
+            cmd += ` \\\n  -d '${bodyStr}'`;
+        }
+
+        navigator.clipboard.writeText(cmd);
+        
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 1000);
+    };
+
     return (
         <>
             <Collapsible
@@ -212,15 +248,16 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
                                 disabled={isForwarding}
                                 onChange={(e) => setForwardIp(e.target.value)}
                             />
-                            <Button
-                                size="sm"
-                                onClick={handleForward}
-                                disabled={!forwardIp || isForwarding}
-                                className="h-8"
-                            >
+                            
+                            <button className="btn !min-w-0 !px-2 !h-8 flex items-center gap-1" onClick={() => handleForward()}
+                                    disabled={!forwardIp || isForwarding}>
                                 {isForwarding ? <Loader2 className="h-3 w-3 animate-spin"/> : <Send className="h-3 w-3" />}
-                                <span className="ml-2">Send</span>
-                            </Button>
+                                <span>Send</span>
+                            </button>
+                            <button className="btn !min-w-0 !px-2 !h-8 flex items-center gap-1" onClick={() => handleCopyCurl()} title="Copy as bash cURL">
+                                {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                                <span>cURL</span>
+                            </button>
                         </div>
                         {(forwardIp.includes("localhost") || forwardIp.includes("127.0.0.1")) && !hasExtension && (
                             <p className="text-[10px] text-amber-600 mt-1">
