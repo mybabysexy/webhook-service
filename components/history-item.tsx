@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     Collapsible,
     CollapsibleContent,
@@ -55,26 +55,39 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
     }, []);
 
     // Listen for extension responses
+    const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
         const handleMessage = (event: MessageEvent) => {
             if (event.source !== window) return;
-            if (event.data.type === "FORWARD_WEBHOOK_RESPONSE") {
-                const result = event.data.payload;
-                console.log("Received response from extension:", result);
-                
-                setResponseDetails(result);
-                setIsSheetOpen(true);
-                setIsForwarding(false);
+            
+            // Clear existing timeout to debounce
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
             }
-            if (event.data.type === "EXTENSION_LOADED") {
-                setHasExtension(true);
-            }
+
+            debounceRef.current = setTimeout(() => {
+                if (event.data.type === "FORWARD_WEBHOOK_RESPONSE") {
+                    const result = event.data.payload;
+                    console.log("Received response from extension:", result);
+                    
+                    setResponseDetails(result);
+                    setIsSheetOpen(true);
+                    setIsForwarding(false);
+                }
+                if (event.data.type === "EXTENSION_LOADED") {
+                    setHasExtension(true);
+                }
+            }, 300);
         };
 
         window.addEventListener("message", handleMessage);
-        return () => window.removeEventListener("message", handleMessage);
+        return () => {
+            window.removeEventListener("message", handleMessage);
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
     }, []);
 
     const handleForward = async () => {
