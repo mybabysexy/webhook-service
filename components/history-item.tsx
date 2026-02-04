@@ -69,8 +69,14 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
             }
 
             debounceRef.current = setTimeout(() => {
-                if (event.data.type === "FORWARD_WEBHOOK_RESPONSE" && !isSheetOpen) {
+                if (event.data.type === "FORWARD_WEBHOOK_RESPONSE") {
                     const result = event.data.payload;
+                    
+                    // Filter: Only process if this response belongs to this item
+                    if (result.requestId !== request.id) {
+                        return;
+                    }
+
                     console.log("Received response from extension:", result);
                     
                     setResponseDetails(result);
@@ -121,7 +127,6 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
                 body: request.body,
                 requestId: request.id // Add ID for filtering
             };
-
             // Strategy: 
             // 1. If extension is detected, use it.
             // 2. Fallback to server-side forwarding.

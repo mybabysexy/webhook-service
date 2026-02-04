@@ -1,6 +1,6 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === "FORWARD_WEBHOOK_REQUEST") {
-        const { targetUrl, method, headers, body } = request.payload;
+        const { targetUrl, method, headers, body, requestId } = request.payload;
 
         (async () => {
             try {
@@ -29,6 +29,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
                 sendResponse({
                     success: true,
+                    requestId,
                     status,
                     statusText,
                     response: responseBody
@@ -37,6 +38,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 console.error("Forwarding failed:", error);
                 sendResponse({
                     success: false,
+                    requestId,
                     error: error.message
                 });
             }
