@@ -44,27 +44,28 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
                 targetUrl = `http://${targetUrl}`;
             }
             
-            const url = new URL(targetUrl); // validate URL
+            new URL(targetUrl); // validate URL
             
             // Prepare headers
             const headers: Record<string, string> = {};
             if (isJsonObject(request.headers)) {
                 Object.entries(request.headers).forEach(([k, v]) => {
-                    // Filter out headers that might cause CORS or other issues if possible, 
-                    // or just try to send them all. Browsers block some headers (Host, Connection, etc).
-                    // We can't set 'Host' in fetch.
-                    if (k.toLowerCase() !== 'host' && k.toLowerCase() !== 'content-length') {
-                         headers[k] = String(v);
-                    }
+                     headers[k] = String(v);
                 });
             }
-            
-            // Fetch
-            await fetch(url.toString(), {
-                method: request.method,
-                headers: headers,
-                body: request.method !== 'GET' && request.method !== 'HEAD' ? JSON.stringify(request.body) : undefined,
-                mode: 'no-cors',
+
+            // Forward via server-side API
+            await fetch('/api/forward', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    targetUrl,
+                    method: request.method,
+                    headers,
+                    body: request.body
+                }),
             });
         } catch (e: any) {
             alert(`Error forwarding: ${e.message}`);
