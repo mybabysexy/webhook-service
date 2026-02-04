@@ -1,8 +1,9 @@
 import "./globals.css";
 import "@sakun/system.css/dist/system.css";
-import { Inter } from "next/font/google"; // Or use standard font from system.css if preferred, but Inter is in next.
-// System.css uses standard sans-serif usually.
+import { Montserrat } from "next/font/google";
 import type { Metadata } from "next";
+
+const montserrat = Montserrat({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Webhook Service",
@@ -18,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
-      <body className="antialiased h-full overflow-hidden">
+      <body className={`${montserrat.className} antialiased h-full overflow-hidden`}>
         <Providers>{children}</Providers>
       </body>
     </html>

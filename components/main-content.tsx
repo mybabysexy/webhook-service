@@ -148,33 +148,6 @@ export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose, onEdi
                     </div>
                 </div>
 
-                {/* Authentication Section */}
-                {(details?.authEnabled || webhook?.authEnabled) && (
-                    <div className="flex flex-col gap-2">
-                        <label className="font-bold text-sm">Authentication:</label>
-                        <div className="flex flex-col gap-1 text-sm">
-                            <div className="flex gap-2">
-                                <span className="font-semibold">Type:</span>
-                                <span>{(details?.authType || webhook?.authType) === 'bearer' ? 'Bearer Token (Header)' : 'Query Parameter (?token=...)'}</span>
-                            </div>
-                            <div className="flex gap-2">
-                                <span className="font-semibold">Token:</span>
-                                <code className="font-mono bg-gray-100 px-1">{details?.authToken || webhook?.authToken}</code>
-                            </div>
-                            {(details?.authType || webhook?.authType) === 'bearer' && (
-                                <div className="text-xs text-gray-600 mt-1">
-                                    Use header: <code className="font-mono bg-gray-100 px-1">Authorization: Bearer {details?.authToken || webhook?.authToken}</code>
-                                </div>
-                            )}
-                            {(details?.authType || webhook?.authType) === 'query' && (
-                                <div className="text-xs text-gray-600 mt-1">
-                                    Example: <code className="font-mono bg-gray-100 px-1">{typeof window !== 'undefined' ? `${window.location.origin}/webhook/${details?.path || webhook.path}?token=${details?.authToken || webhook?.authToken}` : ''}</code>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
                 <div className="separator"></div>
 
                 {/* History Section */}
@@ -182,7 +155,7 @@ export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose, onEdi
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="font-bold text-lg">Request History</h3>
                         <div className="flex items-center gap-2">
-                            <button 
+                            <button
                                 className={`btn !min-w-0 !px-2 flex items-center gap-1 ${isLive ? "!bg-red-50 !text-red-500 !border-red-500" : ""}`}
                                 onClick={toggleLive}
                                 title={isLive ? "Stop Live Mode" : "Start Live Mode"}
@@ -205,9 +178,9 @@ export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose, onEdi
                     ) : (
                         <div className="space-y-2">
                             {details?.requests?.map((req) => (
-                                <HistoryItem 
-                                    key={req.id} 
-                                    request={req} 
+                                <HistoryItem
+                                    key={req.id}
+                                    request={req}
                                     className={isLive && liveModePrevIds.has(req.id) ? "opacity-30 grayscale transition-all duration-300" : "transition-all duration-300"}
                                 />
                             ))}

@@ -74,7 +74,7 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
                             className="text-gray-400"
                         />
                     </div>
-                    <div className="bg-gray-100 p-2 border border-gray-300 font-mono text-xs overflow-auto max-h-96 whitespace-pre-wrap">
+                    <div className="bg-gray-100 p-2 border border-gray-300 font-sans! text-xs overflow-auto max-h-96 whitespace-pre-wrap">
                         {isRawHeaders ? (
                             JSON.stringify(request.headers, null, 4)
                         ) : (
@@ -86,7 +86,7 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
                 </div>
                 <div>
                     <h4 className="font-bold mb-1 text-xs uppercase text-gray-500">Query Params</h4>
-                    <div className="bg-gray-100 p-2 border border-gray-300 font-mono text-xs overflow-auto">
+                    <div className="bg-gray-100 p-2 border border-gray-300 font-sans! text-xs overflow-auto">
                         {isJsonObject(request.query) && Object.keys(request.query).length > 0 ? (
                             Object.entries(request.query).map(([k, v]) => (
                                 <div key={k}><span className="font-bold">{k}:</span> {String(v)}</div>

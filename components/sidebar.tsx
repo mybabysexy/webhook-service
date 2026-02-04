@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Webhook } from "@prisma/client";
 import clsx from "clsx";
-import { Copy, Trash2, Plus, Edit } from "lucide-react";
+import { Copy, Trash2, Plus, Edit, Lock, Pause } from "lucide-react";
 import { useDeleteWebhook } from "@/lib/hooks";
 import { RetroAlert } from "@/components/retro-alert";
 import { Button } from "@/components/ui/button";
@@ -103,12 +103,22 @@ export function Sidebar({ webhooks, selectedId, onSelect, onCreateSuccess, onDel
                                         )}
                                     >
                                         <span className="font-bold truncate">{webhook.name || `/${webhook.path}`}</span>
-                                        {webhook.method !== "ANY" && (
-                                            <span className="text-xs ml-2 opacity-70">{webhook.method}</span>
-                                        )}
+                                        <div className="flex gap-1 items-center">
+                                            {
+                                                !webhook.enabled && (
+                                                    <Pause className="w-3 h-3 opacity-70" />
+                                                )
+                                            }
+                                            {webhook.authEnabled && (
+                                                <Lock className="w-3 h-3 opacity-70" />
+                                            )}
+                                            {webhook.method !== "ANY" && (
+                                                <span className="text-xs opacity-70">{webhook.method}</span>
+                                            )}
+                                        </div>
                                     </div>
                                 </ContextMenuTrigger>
-                                <ContextMenuContent>
+                                <ContextMenuContent className={'font-old'}>
                                     <ContextMenuItem onClick={() => onEditClick(webhook)}>
                                         <Edit className="w-4 h-4 mr-2" />
                                         <span>Edit</span>

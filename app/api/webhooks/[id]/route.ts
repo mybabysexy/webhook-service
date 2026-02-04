@@ -36,16 +36,17 @@ export async function PATCH(
     const { id } = await params;
     try {
         const body = await request.json();
-        const { name, path, method, responseStatus, responseData, authEnabled, authType, authToken } = body;
-        
+        const { name, path, method, responseStatus, responseData, authEnabled, authType, authToken, enabled } = body;
+
         const updateData: any = {
+            enabled,
             name,
             path,
             method,
             responseStatus: responseStatus ? parseInt(responseStatus) : undefined,
             authEnabled,
-            authType: authEnabled ? authType : null,
-            authToken: authEnabled ? authToken : null,
+            authType: authEnabled ? authType : undefined,
+            authToken: authEnabled ? authToken : undefined,
         };
 
         if (responseData !== undefined) {
