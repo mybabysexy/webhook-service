@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Collapsible,
     CollapsibleContent,
@@ -21,6 +21,7 @@ import {
     SheetDescription,
     SheetHeader,
     SheetTitle,
+    SheetFooter,
 } from "@/components/ui/sheet";
 
 interface HistoryItemProps {
@@ -44,12 +45,44 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [responseDetails, setResponseDetails] = useState<any>(null);
     const [isRawResponse, setIsRawResponse] = useState(false);
+    const [hasExtension, setHasExtension] = useState(false);
+
+    // Check for extension on mount via Ping
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        // Send a ping in case extension is already loaded
+        window.postMessage({ type: "PING_EXTENSION" }, "*");
+    }, []);
+
+    // Listen for extension responses
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const handleMessage = (event: MessageEvent) => {
+            if (event.source !== window) return;
+            if (event.data.type === "FORWARD_WEBHOOK_RESPONSE") {
+                const result = event.data.payload;
+                console.log("Received response from extension:", result);
+                
+                setResponseDetails(result);
+                setIsSheetOpen(true);
+                setIsForwarding(false);
+            }
+            if (event.data.type === "EXTENSION_LOADED") {
+                setHasExtension(true);
+            }
+        };
+
+        window.addEventListener("message", handleMessage);
+        return () => window.removeEventListener("message", handleMessage);
+    }, []);
 
     const handleForward = async () => {
         if (!forwardIp) return;
         setIsForwarding(true);
         setResponseDetails(null);
         setIsRawResponse(false);
+
         try {
             // Construct the target URL
             // Ensure http:// or https:// is present, if not assume http://
@@ -68,39 +101,49 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
                 });
             }
 
-            // Forward via server-side API
+            const requestData = {
+                targetUrl,
+                method: request.method,
+                headers,
+                body: request.body
+            };
+
+            // Strategy: 
+            // 1. If extension is detected, use it.
+            // 2. Fallback to server-side forwarding.
+
+            if (hasExtension) {
+                console.log("Forwarding via Extension");
+                window.postMessage({
+                    type: "FORWARD_WEBHOOK_REQUEST",
+                    payload: requestData
+                }, "*");
+                // isForwarding set to false in event listener
+                return;
+            }
+
+            // Fallback to Server-Side API
+            console.log("Forwarding via Server API");
             const response = await fetch('/api/forward', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    targetUrl,
-                    method: request.method,
-                    headers,
-                    body: request.body
-                }),
+                body: JSON.stringify(requestData),
             });
 
             const result = await response.json();
 
             setResponseDetails(result);
             setIsSheetOpen(true);
+            setIsForwarding(false); // Done
 
             if (!response.ok) {
-                // Keep sheet open to show error details if available in result
-                // throw new Error(result.error || "Failed to forward request");
-                // Instead of throwing, just alerting or letting the sheet show the error might be better?
-                // For now, let's just log and show sheet.
                 console.error("Forwarding failed", result);
-            } else {
-                 // alert(`Forwarded successfully! Remote status: ${result.status}`); 
-                 // Removing alert in favor of Sheet
             }
 
         } catch (e: any) {
-            alert(`Error forwarding: ${e.message}`);
-        } finally {
+            console.error(`Error forwarding: ${e.message}`);
             setIsForwarding(false);
         }
     };
@@ -160,6 +203,16 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
                                 <span className="ml-2">Send</span>
                             </Button>
                         </div>
+                        {(forwardIp.includes("localhost") || forwardIp.includes("127.0.0.1")) && !hasExtension && (
+                            <p className="text-[10px] text-amber-600 mt-1">
+                                ⚠️ For localhost, please install the <b>Chrome Extension</b>.
+                            </p>
+                        )}
+                        {hasExtension && (
+                            <p className="text-[10px] text-green-600 mt-1 flex items-center gap-1">
+                                ✅ Chrome Extension detected.
+                            </p>
+                        )}
                     </div>
 
                     <div>
@@ -205,7 +258,7 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
                         <div className="border border-gray-300 overflow-auto max-h-96 bg-gray-50">
                             {request.body && isJsonObject(request.body) && Object.keys(request.body).length > 0 ? (
                                 isRawBody ? (
-                                    <pre className="p-2 font-sans! whitespace-pre-wrap text-sm">
+                                    <pre className="p-2 font-mono text-xs whitespace-pre-wrap">
                                         {JSON.stringify(request.body, null, 4)}
                                     </pre>
                                 ) : (
@@ -220,7 +273,7 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
             </Collapsible>
 
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                <SheetContent className="w-[500px] sm:w-[540px] overflow-y-auto">
+                <SheetContent className="w-[500px] sm:w-[540px] overflow-y-auto flex flex-col">
                     <SheetHeader>
                         <SheetTitle>Forwarding Response</SheetTitle>
                         <SheetDescription>
@@ -229,12 +282,15 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
                     </SheetHeader>
                     
                     {responseDetails && (
-                        <div className="px-4 space-y-6">
+                        <div className="px-4 space-y-6 flex-1">
                             <div>
                                 <h4 className="text-sm font-bold text-gray-500 uppercase mb-2">Status</h4>
                                 <div className="flex items-center gap-2">
                                     <span className={clsx(
-                                        "text-xs font-bold px-2 py-1 border border-black text-white bg-[var(--primary)]"
+                                        "px-2 py-1 rounded text-sm font-bold",
+                                        responseDetails.status >= 200 && responseDetails.status < 300 
+                                            ? "bg-green-100 text-green-700" 
+                                            : "bg-red-100 text-red-700"
                                     )}>
                                         {responseDetails.status} {responseDetails.statusText}
                                     </span>
@@ -258,7 +314,7 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
                                         </div>
                                          <div className="border border-gray-200 rounded p-2 bg-gray-50 overflow-auto max-h-[60vh]">
                                             {isRawResponse ? (
-                                                <pre className="p-2 whitespace-pre-wrap text-sm font-sans!">
+                                                <pre className="p-2 font-mono text-xs whitespace-pre-wrap">
                                                     {typeof responseDetails.response === 'string' 
                                                         ? responseDetails.response 
                                                         : JSON.stringify(responseDetails.response, null, 4)}
@@ -278,6 +334,22 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
                             )}
                         </div>
                     )}
+
+                    <SheetFooter className="sm:justify-center border-t mt-auto">
+                        <div className="text-center text-xs text-gray-400">
+                            <p className="mb-2">Need to forward to localhost?</p>
+                            <a 
+                                href="/extension/extension.zip"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    alert("To install the extension:\n1. Open chrome://extensions\n2. Enable Developer Mode\n3. Click 'Load Unpacked'\n4. Select the 'public/extension' folder in this project.");
+                                }}
+                                className="text-primary hover:underline cursor-pointer"
+                            >
+                                Download Chrome Extension Bridge
+                            </a>
+                        </div>
+                    </SheetFooter>
                 </SheetContent>
             </Sheet>
         </>

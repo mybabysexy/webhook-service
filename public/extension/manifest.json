@@ -1,0 +1,26 @@
+{
+    "manifest_version": 3,
+    "name": "Webhook Forwarder Bridge",
+    "version": "1.0",
+    "description": "Bridge for forwarding webhooks to localhost from Webhook Service",
+    "permissions": [
+        "activeTab",
+        "scripting"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "content.js"
+            ]
+        }
+    ],
+    "background": {
+        "service_worker": "background.js"
+    }
+}
