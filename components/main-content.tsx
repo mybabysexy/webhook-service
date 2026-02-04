@@ -133,11 +133,11 @@ export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose, onEdi
                     <div className="flex items-center gap-2">
                         <input
                             readOnly
-                            className="w-full text-sm font-mono"
+                            className="w-full text-sm font-mono h-7"
                             value={typeof window !== 'undefined' ? `${window.location.origin}/webhook/${details?.path || webhook.path}` : ''}
                         />
                         <button
-                            className="btn !min-w-0 !px-3"
+                            className="btn !min-w-0 !px-3 h-7"
                             onClick={() => {
                                 const url = `${window.location.origin}/webhook/${details?.path || webhook.path}`;
                                 navigator.clipboard.writeText(url);

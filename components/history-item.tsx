@@ -112,7 +112,7 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
                          <input
                             type="text"
                             placeholder="e.g. 192.168.1.5:8080 or localhost:3000"
-                            className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm font-mono"
+                            className="flex-1 border border-gray-300 rounded px-2 h-8 text-sm font-mono"
                             value={forwardIp}
                             disabled={isForwarding}
                             onChange={(e) => setForwardIp(e.target.value)}

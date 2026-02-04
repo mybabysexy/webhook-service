@@ -74,7 +74,7 @@ export function Sidebar({ webhooks, selectedId, onSelect, onCreateSuccess, onDel
                         <input
                             type="search"
                             placeholder="Search..."
-                            className="w-full"
+                            className="w-full h-8"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
