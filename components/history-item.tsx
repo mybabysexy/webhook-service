@@ -69,7 +69,7 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
             }
 
             debounceRef.current = setTimeout(() => {
-                if (event.data.type === "FORWARD_WEBHOOK_RESPONSE") {
+                if (event.data.type === "FORWARD_WEBHOOK_RESPONSE" && !isSheetOpen) {
                     const result = event.data.payload;
                     console.log("Received response from extension:", result);
                     
@@ -118,7 +118,8 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
                 targetUrl,
                 method: request.method,
                 headers,
-                body: request.body
+                body: request.body,
+                requestId: request.id // Add ID for filtering
             };
 
             // Strategy: 
