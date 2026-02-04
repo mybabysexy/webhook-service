@@ -7,7 +7,7 @@ import {
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Send } from "lucide-react";
 import { JsonView, defaultStyles } from 'react-json-view-lite';
 import 'react-json-view-lite/dist/index.css';
 import clsx from "clsx";
@@ -30,6 +30,48 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [isRawHeaders, setIsRawHeaders] = useState(false);
     const [isRawBody, setIsRawBody] = useState(false);
+    const [forwardIp, setForwardIp] = useState("");
+    const [isForwarding, setIsForwarding] = useState(false);
+
+    const handleForward = async () => {
+        if (!forwardIp) return;
+        setIsForwarding(true);
+        try {
+            // Construct the target URL
+            // Ensure http:// or https:// is present, if not assume http://
+            let targetUrl = forwardIp;
+            if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
+                targetUrl = `http://${targetUrl}`;
+            }
+            
+            const url = new URL(targetUrl); // validate URL
+            
+            // Prepare headers
+            const headers: Record<string, string> = {};
+            if (isJsonObject(request.headers)) {
+                Object.entries(request.headers).forEach(([k, v]) => {
+                    // Filter out headers that might cause CORS or other issues if possible, 
+                    // or just try to send them all. Browsers block some headers (Host, Connection, etc).
+                    // We can't set 'Host' in fetch.
+                    if (k.toLowerCase() !== 'host' && k.toLowerCase() !== 'content-length') {
+                         headers[k] = String(v);
+                    }
+                });
+            }
+            
+            // Fetch
+            await fetch(url.toString(), {
+                method: request.method,
+                headers: headers,
+                body: request.method !== 'GET' && request.method !== 'HEAD' ? JSON.stringify(request.body) : undefined,
+                mode: 'no-cors',
+            });
+        } catch (e: any) {
+            alert(`Error forwarding: ${e.message}`);
+        } finally {
+            setIsForwarding(false);
+        }
+    };
 
     return (
         <Collapsible
@@ -64,6 +106,29 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
             </CollapsibleTrigger>
 
             <CollapsibleContent className="p-3 space-y-4 text-sm bg-white">
+                <div className="border-l-3 border-gray-200 pl-3 py-1">
+                    <h4 className="font-bold text-xs uppercase text-gray-500 mb-2">Forward Request</h4>
+                    <div className="flex items-center gap-2">
+                         <input
+                            type="text"
+                            placeholder="e.g. 192.168.1.5:8080 or localhost:3000"
+                            className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm font-mono"
+                            value={forwardIp}
+                            disabled={isForwarding}
+                            onChange={(e) => setForwardIp(e.target.value)}
+                        />
+                        <Button
+                            size="sm"
+                            onClick={handleForward}
+                            disabled={!forwardIp || isForwarding}
+                            className="h-8"
+                        >
+                            {isForwarding ? <Loader2 className="h-3 w-3 animate-spin"/> : <Send className="h-3 w-3" />}
+                            <span className="ml-2">Send</span>
+                        </Button>
+                    </div>
+                </div>
+
                 <div>
                     <div className="flex items-center justify-between mb-1">
                         <h4 className="font-bold text-xs uppercase text-gray-500">Headers</h4>
