@@ -34,24 +34,26 @@ async function handleWebhook(request: Request, { params }: { params: Promise<{ p
 
         let body = null;
         const contentType = request.headers.get("content-type") || "";
-        if (contentType.includes("application/json")) {
-            try {
-                // We clone the request to ensure we can read the body even if we needed it elsewhere (though here we just read it once)
-                // Actually, request.json() consumes the body. 
-                // Since we need to read it before deciding to error content, this is fine.
-                body = await request.json();
-            } catch (e) {
-                console.error("Failed to parse JSON body", e);
-                body = { error: "Invalid JSON" };
-            }
-        } else {
-            try {
-                const text = await request.text();
-                if (text) {
-                    body = { raw: text };
+        if (method !== 'GET' && method !== 'HEAD') {
+            if (contentType.includes("application/json")) {
+                try {
+                    // We clone the request to ensure we can read the body even if we needed it elsewhere (though here we just read it once)
+                    // Actually, request.json() consumes the body. 
+                    // Since we need to read it before deciding to error content, this is fine.
+                    body = await request.json();
+                } catch (e) {
+                    console.error("Failed to parse JSON body", e);
+                    body = { error: "Invalid JSON" };
                 }
-            } catch (e) {
-                console.error("Failed to read body", e);
+            } else {
+                try {
+                    const text = await request.text();
+                    if (text) {
+                        body = { raw: text };
+                    }
+                } catch (e) {
+                    console.error("Failed to read body", e);
+                }
             }
         }
 

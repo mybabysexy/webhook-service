@@ -48,13 +48,6 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
     const [hasExtension, setHasExtension] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
 
-    // Check for extension on mount via Ping
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        // Send a ping in case extension is already loaded
-        window.postMessage({ type: "PING_EXTENSION" }, "*");
-    }, []);
-
     // Listen for extension responses
     const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -314,7 +307,7 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
                         <div className="border border-gray-300 overflow-auto max-h-96 bg-gray-50">
                             {request.body && isJsonObject(request.body) && Object.keys(request.body).length > 0 ? (
                                 isRawBody ? (
-                                    <pre className="p-2 font-mono text-xs whitespace-pre-wrap">
+                                    <pre className="p-2 font-sans whitespace-pre-wrap">
                                         {JSON.stringify(request.body, null, 4)}
                                     </pre>
                                 ) : (
@@ -370,7 +363,7 @@ export function HistoryItem({ request, className }: HistoryItemProps) {
                                         </div>
                                          <div className="border border-gray-200 rounded p-2 bg-gray-50 overflow-auto max-h-[60vh]">
                                             {isRawResponse ? (
-                                                <pre className="p-2 font-mono text-xs whitespace-pre-wrap">
+                                                <pre className="p-2 font-sans whitespace-pre-wrap">
                                                     {typeof responseDetails.response === 'string' 
                                                         ? responseDetails.response 
                                                         : JSON.stringify(responseDetails.response, null, 4)}

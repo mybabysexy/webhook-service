@@ -29,16 +29,47 @@ export function MainContent({ webhook, onDeleteSuccess, onUpdate, onClose, onEdi
     const [liveModePrevIds, setLiveModePrevIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
-        let interval: NodeJS.Timeout;
+        let interval: number;
         if (isLive) {
-            interval = setInterval(() => {
+            interval = window.setInterval(() => {
                 refetch();
             }, 1000);
         }
         return () => {
-            if (interval) clearInterval(interval);
+            if (interval) window.clearInterval(interval);
         };
     }, [isLive, refetch]);
+
+    // Check for extension on mount via Ping
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        // Send a ping in case extension is already loaded
+        const ping = () => {
+            window.postMessage({ type: "PING_EXTENSION" }, "*");
+        }
+
+        ping();
+
+        const interval = window.setInterval(ping, 1000);
+
+        return () => window.clearInterval(interval);
+    }, []);
+
+    // useEffect(() => {
+    //     if (typeof window === 'undefined') return;
+
+    //     const handleMessage = (event: MessageEvent) => {
+    //         if (event.data.type === "EXTENSION_LOADED") {
+    //             console.log("PONG");
+    //         }
+    //     };
+
+    //     window.addEventListener("message", handleMessage);
+    //     return () => {
+    //         window.removeEventListener("message", handleMessage);
+    //     };
+    // }, []);
 
     const toggleLive = () => {
         if (!isLive) {
